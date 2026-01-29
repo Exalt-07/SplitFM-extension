@@ -1,4 +1,4 @@
-## SFF
+## SFF : Split - Federated - Finetuning
 
 SFF builds upon the foundation of [LoRA](https://github.com/microsoft/LoRA) and Split Learning to enable privacy-preserving, parameter-efficient fine-tuning of foundation models. In this extended version, we introduce significant enhancements to support **heterogeneous client environments** and **advanced aggregation strategies**.
 

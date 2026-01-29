@@ -135,7 +135,7 @@ parser.add_argument(
     help="Comma-separated LoRA ranks per client for heterogeneous setups. If unset, all clients use lora_dim.",
 )
 parser.add_argument('--cut_layer', type=int, default=3, help='layer index to split the model')
-parser.add_argument("--agg_method", default="fed_avg", choices=["fed_avg", "flora", "flex", "ffa"], help="Aggregation scheme to use")
+parser.add_argument("--agg_method", default="avg", choices=["avg", "stack", "svd", "freeze"], help="Aggregation scheme to use")
 def debug_lora_integrity(tag, tensor_name, tensor):
     """
     Diagnoses if a LoRA_A matrix has been corrupted by naive padding.
@@ -374,8 +374,8 @@ def fed_avg(w, args, config, client_ranks):
     if len(w) != len(client_ranks):
         raise ValueError("Number of local LoRA states does not match number of client ranks.")
 
-    # 1. Standard FedAvg / FFA / Fedit
-    if method in ['fed_avg', 'ffa', 'fedit']:
+    # 1. Standard FedAvg / Freeze / Fedit
+    if method in ['avg', 'freeze', 'fedit']:
         max_rank = max(client_ranks)
         padded_states = [pad_lora_state_to_rank(client_w, max_rank) for client_w in w]
 
@@ -395,8 +395,8 @@ def fed_avg(w, args, config, client_ranks):
             "stack_rank": max_rank,
         }
 
-    # 2. FLoRA (Stacking)
-    if method == 'flora':
+    # 2. Stacking
+    if method == 'stack':
         n_embd = config.n_embd
         n_clients = len(w)
         combined_w = {}
@@ -450,7 +450,7 @@ def fed_avg(w, args, config, client_ranks):
             total_cols = total_rank_q + total_rank_v
             # DEBUG: Check dimensions
             if layer_prefix == "h.0":
-                 print(f"DEBUG: fed_avg B Matrix: Q_width={total_rank_q}, V_width={total_rank_v}")
+                 print(f"DEBUG: avg B Matrix: Q_width={total_rank_q}, V_width={total_rank_v}")
                  if total_rank_v == 0:
                      raise RuntimeError("Value Projection B-Matrix is empty! Check extraction logic.")
 
@@ -469,8 +469,8 @@ def fed_avg(w, args, config, client_ranks):
             "stacked": combined_w,
             "stack_rank": stack_rank,
         }
-    # 2. Flex-LoRA
-    if method == 'flex':
+    # 2. SVD-based Aggregation
+    if method == 'svd':
         n_embd = config.n_embd
         aggregated_BA = {}
         n_clients = len(w)
@@ -621,7 +621,7 @@ def evaluate(model_client, model_server, valid_loader,args):
 
 def federated_merge_gpt2(model, w_stacked_dict, alpha, r_target=None):
     """
-    Implements FLoRA's 'Merge and Reset' strategy.
+    Implements 'Merge and Reset' strategy.
     Handles 'Packed' Delta W (Query+Value) merging into 'Full' Base Weights (Query+Key+Value).
     AUTO-DETECTS Conv1D (Transposed) vs Linear weight shapes.
     """
@@ -833,8 +833,8 @@ if __name__ == "__main__":
     if args.lora_dim > 0:
         lora.mark_only_lora_as_trainable(lm_net_Client)
         lora.mark_only_lora_as_trainable(lm_net_Server)
-        if args.agg_method == 'ffa':
-             print("DEBUG: Applying FFA (Freeze-A) to Global Models")
+        if args.agg_method == 'freeze':
+             print("DEBUG: Applying Freeze-A to Global Models")
              init_and_freeze_lora_A(lm_net_Client, seed=42)
              init_and_freeze_lora_A(lm_net_Server, seed=42)
 
@@ -854,8 +854,8 @@ if __name__ == "__main__":
         client_model = client_model.cuda()
         if client_rank > 0:
             lora.mark_only_lora_as_trainable(client_model)
-            if args.agg_method == 'ffa':
-                print(f"DEBUG: Applying FFA to Client {i}")
+            if args.agg_method == 'freeze':
+                print(f"DEBUG: Applying Freeze-A to Client {i}")
                 init_and_freeze_lora_A(client_model, seed=42)
         optimizer = create_adam_optimizer_from_args(client_model, args)
         client_models.append(client_model)
@@ -919,12 +919,12 @@ if __name__ == "__main__":
             net_glob_client.load_weight(state_dict)
             if args.lora_dim > 0:
                 lora.mark_only_lora_as_trainable(net_glob_client)
-                if args.agg_method == "ffa":
+                if args.agg_method == "freeze":
                     init_and_freeze_lora_A(net_glob_client, seed=42)
             net_glob_client.train()
 
-            # For FLoRA, use the persistent global client passed in; otherwise use net_glob_client.
-            if args.agg_method == "flora":
+            # For Stacking, use the persistent global client passed in; otherwise use net_glob_client.
+            if args.agg_method == "stack":
                 # global_client_model = model_client.to(device)
                 if epoch == 1:
                     global_client_model = net_glob_client
@@ -1027,15 +1027,15 @@ if __name__ == "__main__":
 
                         # ... rest of the logic ...
 
-                        # --- FLoRA SPECIFIC LOGIC ---
-                        if args.agg_method == "flora":
+                        # --- STACKING SPECIFIC LOGIC ---
+                        if args.agg_method == "stack":
                             stack_rank = agg_result["stack_rank"]
                             w_glob_client_lora_prefixed = prefix_lora_keys(
                                 agg_result["stacked"], "transformer_Client."
                             )
 
                             print(
-                                f"DEBUG: FLoRA Merge and Reset at step {train_step} (stack_rank={stack_rank})"
+                                f"DEBUG:Merge and Reset at step {train_step} (stack_rank={stack_rank})"
                             )
 
                             # 1. Merge into Global Model
@@ -1061,7 +1061,7 @@ if __name__ == "__main__":
                             # Do NOT load_state_dict the huge LoRA matrices.
                             # The models are already updated via the merge function.
 
-                        # --- STANDARD LOGIC (FedAvg/FFA/Flex) ---
+                        # --- STANDARD LOGIC (FedAvg/Freeze/SVD) ---
                         else:
                             w_glob_client_lora_new = prefix_lora_keys(
                                 agg_result["global_max"], "transformer_Client."
