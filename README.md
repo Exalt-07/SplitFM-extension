@@ -4,7 +4,7 @@ SFF builds upon the foundation of [LoRA](https://github.com/microsoft/LoRA) and 
 
 **Key Contributions:**
 
-1. **Heterogeneous LoRA Ranks**: We have extended the framework to support heterogeneous ranks across clients (e.g., `[4, 8, 16]`).
+1. **Heterogeneous LoRA Ranks**: We have implemented the framework to support heterogeneous ranks across clients (e.g., `[4, 8, 16]`).
 2. **Federated Aggregation Schemes**: We have integrated four distinct aggregation methods to handle the updates from these heterogeneous clients:
     * **Average**: Performs naive element-wise averaging of adapter matrices, though this can introduce cross-term interference that may destabilize the split forward pass.
     * **Freeze**: Freezes one projection matrix while training only the other to enforce linearity and eliminate cross-term noise, at the cost of reduced trainable parameters.
