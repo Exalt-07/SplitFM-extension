@@ -1,0 +1,9 @@
+torch==2.9.1
+transformers==4.36.2
+loralib>=0.1.1
+pandas
+openpyxl
+tqdm
+progress
+spacy
+tensorboard
