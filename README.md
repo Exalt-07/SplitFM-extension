@@ -36,7 +36,7 @@ conda activate SFF
 2. Navigate to the examples directory and install the required packages.
 
 ```bash
-cd SplitLoRA/examples
+cd SFF/examples
 pip install -r requirements.txt
 ```
 
@@ -55,7 +55,7 @@ bash download_evalscript.sh
 cd ..
 ```
 
-#### 2. SplitLoRA Module Libraries
+#### 2. SFF Module Libraries
 
 ##### 2.1 Repository
 
@@ -88,7 +88,7 @@ There are several directories in this repo:
 
 #### 3. Training Process
 
-##### 1. Train GPT-2 with Heterogeneous SplitLoRA
+##### 1. Train GPT-2 with Heterogeneous SFF
 
 Run the following command to start training. Ensure you set your environment variables (like MODEL_CARD, LORA_DIM, AGG_METHOD, etc.) before running.
 
