@@ -13,7 +13,7 @@ SFF builds upon the foundation of [LoRA](https://github.com/microsoft/LoRA) and 
 
 This framework currently supports PyTorch-based GPT-2 models, with plans to integrate more open-source LLMs in the future.
 
-### User Guide
+### User Guide:
 
 #### 1. Build
 
