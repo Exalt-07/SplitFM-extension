@@ -1,19 +1,15 @@
-# SplitFM - Extended
+## SFF
 
-## SplitLoRA
-
-**This repository extends the original SplitFM framework.**
-
-SplitLoRA builds upon the foundation of [LoRA](https://github.com/microsoft/LoRA) and Split Learning to enable privacy-preserving, parameter-efficient fine-tuning of foundation models. In this extended version, we introduce significant enhancements to support **heterogeneous client environments** and **advanced aggregation strategies**.
+SFF builds upon the foundation of [LoRA](https://github.com/microsoft/LoRA) and Split Learning to enable privacy-preserving, parameter-efficient fine-tuning of foundation models. In this extended version, we introduce significant enhancements to support **heterogeneous client environments** and **advanced aggregation strategies**.
 
 **Key Extensions:**
 
 1. **Heterogeneous LoRA Ranks**: We have extended the framework to support heterogeneous ranks across clients (e.g., `[4, 8, 16]`).
 2. **Advanced Aggregation Schemes**: We have integrated four distinct aggregation methods to handle the updates from these heterogeneous clients:
-    * **FedAvg (Federated Averaging)**: Performs naive element-wise averaging of adapter matrices, though this can introduce cross-term interference that may destabilize the split forward pass.
-    * **FFA (Federated Feature Aggregation)**: Freezes one projection matrix while training only the other to enforce linearity and eliminate cross-term noise, at the cost of reduced trainable parameters.
-    * **F-LoRA**: Concatenates adapters to preserve distinct client subspaces without information loss, though this increases the global rank linearly with the number of clients, leading to higher communication costs.
-    * **FlexLoRA**: Aggregates updates in the full update space and re-projects via SVD to maintain a fixed rank, balancing noise reduction with computational efficiency by identifying principal update directions.
+    * **Averaging**: Performs naive element-wise averaging of adapter matrices, though this can introduce cross-term interference that may destabilize the split forward pass.
+    * **Freezing**: Freezes one projection matrix while training only the other to enforce linearity and eliminate cross-term noise, at the cost of reduced trainable parameters.
+    * **Stacking**: Concatenates adapters to preserve distinct client subspaces without information loss, though this increases the global rank linearly with the number of clients, leading to higher communication costs.
+    * **SVD**: Aggregates updates in the full update space and re-projects via SVD to maintain a fixed rank, balancing noise reduction with computational efficiency by identifying principal update directions.
 
 This framework currently supports PyTorch-based GPT-2 models, with plans to integrate more open-source LLMs in the future.
 
