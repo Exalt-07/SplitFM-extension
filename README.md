@@ -1,14 +1,14 @@
-## SFF : Split - Federated - Finetuning
+## SFF : Split Federated Finetuning
 
-SFF builds upon the foundation of [LoRA](https://github.com/microsoft/LoRA) and Split Learning to enable privacy-preserving, parameter-efficient fine-tuning of foundation models. In this extended version, we introduce significant enhancements to support **heterogeneous client environments** and **advanced aggregation strategies**.
+SFF builds upon the foundation of [LoRA](https://github.com/microsoft/LoRA) and Split Learning to enable privacy-preserving, parameter-efficient fine-tuning of foundation models. We introduce significant enhancements to support **heterogeneous client environments** and **Federated aggregation strategies**.
 
-**Key Extensions:**
+**Key Contributions:**
 
 1. **Heterogeneous LoRA Ranks**: We have extended the framework to support heterogeneous ranks across clients (e.g., `[4, 8, 16]`).
-2. **Advanced Aggregation Schemes**: We have integrated four distinct aggregation methods to handle the updates from these heterogeneous clients:
-    * **Averaging**: Performs naive element-wise averaging of adapter matrices, though this can introduce cross-term interference that may destabilize the split forward pass.
-    * **Freezing**: Freezes one projection matrix while training only the other to enforce linearity and eliminate cross-term noise, at the cost of reduced trainable parameters.
-    * **Stacking**: Concatenates adapters to preserve distinct client subspaces without information loss, though this increases the global rank linearly with the number of clients, leading to higher communication costs.
+2. **Federated Aggregation Schemes**: We have integrated four distinct aggregation methods to handle the updates from these heterogeneous clients:
+    * **Average**: Performs naive element-wise averaging of adapter matrices, though this can introduce cross-term interference that may destabilize the split forward pass.
+    * **Freeze**: Freezes one projection matrix while training only the other to enforce linearity and eliminate cross-term noise, at the cost of reduced trainable parameters.
+    * **Stack**: Concatenates adapters to preserve distinct client subspaces without information loss, though this increases the global rank linearly with the number of clients, leading to higher communication costs.
     * **SVD**: Aggregates updates in the full update space and re-projects via SVD to maintain a fixed rank, balancing noise reduction with computational efficiency by identifying principal update directions.
 
 This framework currently supports PyTorch-based GPT-2 models, with plans to integrate more open-source LLMs in the future.
@@ -29,8 +29,8 @@ We have verified in the environment below:
 1. Clone the repo and set up the environment.
 
 ```bash
-conda create -n SplitFM python=3.10 -y
-conda activate SplitFM
+conda create -n SFF python=3.10 -y
+conda activate SFF
 ```
 
 2. Navigate to the examples directory and install the required packages.
@@ -82,7 +82,7 @@ There are several directories in this repo:
 | `--lora_dim` | The dimension of LoRA. | ${LORA_DIM} |
 | `--lora_alpha` | Alpha hyperparameter for LoRA. | 32 |
 | `--cut_layer` | The layer index where the model is split. | ${CUT_LAYER} |
-| `--agg_method` | Aggregation method (e.g., flora, flexlora, fed_avg, ffa). | ${AGG_METHOD} |
+| `--agg_method` | Aggregation method (e.g., stack, svd, avg, freeze). | ${AGG_METHOD} |
 | `--lora_ranks` | List of heterogeneous ranks for clients. | ${LORA_RANKS} |
 | `--work_dir` | Working directory for saving models/logs. | . |
 
@@ -93,7 +93,7 @@ There are several directories in this repo:
 Run the following command to start training. Ensure you set your environment variables (like MODEL_CARD, LORA_DIM, AGG_METHOD, etc.) before running.
 
 ```bash
-python -m torch.distributed.launch --nproc_per_node=1 --master_port=$((RANDOM%10000+20000)) --use_env src/gpt2_ft_sfl_heter_copy.py \
+python -m torch.distributed.launch --nproc_per_node=1 --master_port=$((RANDOM%10000+20000)) --use_env src/gpt2_ft_sfl.py \
     --train_data0 ./data/e2e/train0.jsonl \
     --train_data1 ./data/e2e/train1.jsonl \
     --train_data2 ./data/e2e/train2.jsonl \
